@@ -10,12 +10,14 @@ const SORT = [['relevance', 'Best match to filters'], ['evidence', 'Best proven'
 const WORKS = ['Square', 'QuickBooks', 'Google', 'Shopify', 'Gmail', 'Toast', 'Clover', 'Facebook', 'Microsoft'];
 
 import { RatingPill, PersonalRatingNudge } from '@/components/rating/ApexRating';
+import { WebsiteLink } from '@/components/tools/WebsiteLink';
 
 export function ToolCard({ t, catLabel }) {
   return (
-    <Link to={`/tools/${t.slug}`} className="if-card group flex flex-col p-5 transition-transform duration-200 hover:-translate-y-0.5" data-testid={`tool-card-${t.slug}`}>
+    // The whole card opens the tool page (stretched title link); the website link sits above it in the footer.
+    <div className="if-card group relative flex flex-col p-5 transition-transform duration-200 hover:-translate-y-0.5" data-testid={`tool-card-${t.slug}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="font-display text-lg font-bold group-hover:text-[var(--brand)]">{t.name}</p>
+        <Link to={`/tools/${t.slug}`} className="font-display text-lg font-bold after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] group-hover:text-[var(--brand)]">{t.name}</Link>
         <span className="if-chip shrink-0 border-[var(--line)] bg-[var(--surface-warm)] text-xs text-[var(--ink-2)]">{catLabel}</span>
       </div>
       <p className="mt-2 line-clamp-3 flex-1 text-[0.95rem] text-[var(--ink-2)]">{t.best_for || t.summary}</p>
@@ -29,7 +31,12 @@ export function ToolCard({ t, catLabel }) {
         <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" />{t.evidence_label}</span>
         {t.smb_fit_flag && t.smb_fit_flag !== 'good' && <span className="inline-flex items-center gap-1 text-warning"><AlertTriangle className="h-3.5 w-3.5" />Built for bigger businesses</span>}
       </div>
-    </Link>
+      {t.website_url && (
+        <div className="relative z-10 -mx-2 -mb-2 mt-3 border-t border-[var(--line)] pt-1">
+          <WebsiteLink url={t.website_url} name={t.name} testid={`tool-card-website-${t.slug}`} />
+        </div>
+      )}
+    </div>
   );
 }
 

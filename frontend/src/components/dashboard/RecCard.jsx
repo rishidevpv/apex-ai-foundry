@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, BookmarkCheck, Columns3, Wrench, ChevronDown, Check, HelpCircle } from 'lucide-react';
 import { ApexBadge, WhyRating } from '@/components/rating/ApexRating';
+import { WebsiteLink } from '@/components/tools/WebsiteLink';
 
 // One recommendation, built to be scanned in seconds:
 // name → one line on what it does → three key facts → one clear next step. Everything else is one tap away.
@@ -75,6 +76,7 @@ export function RecCard({ pick, onSave, saved, compareHref, guideHref, readOnly,
           {!readOnly && <button type="button" className="if-btn-ghost min-h-11 px-3" onClick={() => onSave?.(t.slug)} data-testid={`rec-save-${pick.rank}`}>{saved ? <BookmarkCheck className="h-4 w-4 text-[var(--brand)]" /> : <Bookmark className="h-4 w-4" />}{saved ? 'Saved' : 'Save'}</button>}
           <Link to={compareHref} className={`if-btn-ghost min-h-11 px-3 ${readOnly ? 'col-span-2' : ''}`} data-testid={`rec-compare-${pick.rank}`}><Columns3 className="h-4 w-4" />Compare</Link>
         </div>
+        <WebsiteLink url={t.website_url} name={t.name} className="mt-2 w-full" testid={`rec-website-${pick.rank}`} />
       </div>
     </article>
   );

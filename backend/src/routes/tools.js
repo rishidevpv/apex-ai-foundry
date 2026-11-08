@@ -40,7 +40,7 @@ const ListQ = z.object({
 const card = (t, means, profile) => {
   const tb = trustBreakdown(t, means.of(t.category));
   const p = publicTool(t);
-  return { review_rating: publicReviewRating(t), apex: profile ? apexScore(t, profile, means.of(t.category)) : null, slug: p.slug, name: p.name, category: p.category, best_for: p.best_for, summary: p.summary, price_text: p.price_text, has_free_plan: p.has_free_plan, has_free_trial: p.has_free_trial, integrations: p.integrations, smb_fit_flag: p.smb_fit_flag, evidence_label: trustLabel(tb.trust), trust: tb.trust };
+  return { website_url: p.website_url || null, review_rating: publicReviewRating(t), apex: profile ? apexScore(t, profile, means.of(t.category)) : null, slug: p.slug, name: p.name, category: p.category, best_for: p.best_for, summary: p.summary, price_text: p.price_text, has_free_plan: p.has_free_plan, has_free_trial: p.has_free_trial, integrations: p.integrations, smb_fit_flag: p.smb_fit_flag, evidence_label: trustLabel(tb.trust), trust: tb.trust };
 };
 
 r.get('/tools', optionalAuth, async (req, res) => {

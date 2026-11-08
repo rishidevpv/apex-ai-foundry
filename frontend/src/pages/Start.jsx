@@ -24,11 +24,27 @@ function Choice({ selected, onClick, children, sub, icon: Icon, testid, multi, c
       className={`if-press group flex w-full items-center gap-3 rounded-2xl border text-left transition-[background-color,border-color,box-shadow] duration-150 ${compact ? 'min-h-14 px-4 py-3' : 'min-h-[4.25rem] px-4 py-3.5'} ${selected ? 'border-[var(--brand)] bg-[var(--brand-soft)] shadow-[0_0_0_1px_var(--brand)]' : 'border-[var(--line)] bg-[var(--surface)] hover:border-[var(--line-strong)] hover:bg-[var(--surface-hover)]'}`}>
       {Icon && <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${selected ? 'bg-[var(--brand)] text-[var(--on-brand)]' : 'bg-[var(--surface-warm)] text-[var(--ink-2)]'}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>}
       <span className="min-w-0 flex-1">
-        <span className="block text-[1rem] font-medium leading-snug text-[var(--ink)]">{children}</span>
+        <span className="block text-[1rem] font-medium leading-snug text-[var(--ink)] [overflow-wrap:break-word]">{typeof children === 'string' ? children.replace(/\//g, '/\u200b') : children}</span>
         {sub && <span className="block text-sm text-[var(--ink-3)]">{sub}</span>}
       </span>
       <span className={`grid h-6 w-6 shrink-0 place-items-center ${multi ? 'rounded-md' : 'rounded-full'} border ${selected ? 'border-[var(--brand)] bg-[var(--brand)] text-[var(--on-brand)]' : 'border-[var(--line-strong)]'}`}>{selected && <Check className="if-pop h-4 w-4" />}</span>
     </button>
+  );
+}
+
+// Text box that appears under an "Other" / "Something else" choice. What's typed here goes to the AI as context.
+function OtherField({ id, label, hint, value, onChange, max, required, testid, multiline }) {
+  const Field = multiline ? 'textarea' : 'input';
+  return (
+    <div className="if-fade-up rounded-2xl border border-[var(--brand-ring)] bg-[var(--brand-soft)] p-4">
+      <label htmlFor={id} className="block">
+        <span className="text-[0.95rem] font-semibold text-[var(--ink)]">{label}{required && <span className="text-[var(--ink-3)]"> (needed)</span>}</span>
+        {hint && <span className="mt-0.5 block text-sm text-[var(--ink-2)]">{hint}</span>}
+      </label>
+      <Field id={id} autoFocus value={value} maxLength={max} onChange={(e) => onChange(e.target.value)} rows={multiline ? 2 : undefined}
+        className={`if-input mt-3 ${multiline ? 'min-h-20 resize-none py-3' : ''}`} data-testid={testid} />
+      <p className="mt-1 text-right text-xs text-[var(--ink-3)]">{value.length}/{max}</p>
+    </div>
   );
 }
 
@@ -80,15 +96,26 @@ export default function Start() {
             );
           })}
         </div>
+        {a.business_type === 'other' && (
+          <OtherField id="q1-other" label="What kind of business is it?" hint="For example: dog grooming, bakery, dental clinic, tutoring." value={a.business_type_other || ''} max={80}
+            onChange={(v) => set({ business_type_other: v })} testid="q1-type-other-input" />
+        )}
         <div>
           <p className="mb-3 text-lg font-semibold">How many people work there?</p>
           <div className="grid gap-2.5 sm:grid-cols-3">{TEAM.map(([k, l, Icon]) => <Choice key={k} compact icon={Icon} selected={a.team_size_band === k} onClick={() => set({ team_size_band: k })} testid={`q1-team-${k}`}>{l}</Choice>)}</div>
         </div>
       </div>) },
-    { q: 'What takes up too much of your time?', hint: 'Pick one or two.', valid: needCount >= 1 && needCount <= 2, body: (
+    { q: 'What takes up too much of your time?', hint: 'Pick one or two.', valid: needCount >= 1 && needCount <= 2 && (!a.something_else || a.needs.length > 0 || (a.something_else_text || '').trim().length >= 3), body: (
       <div className="grid gap-2.5 sm:grid-cols-2">
         {cats.map((c) => <Choice key={c.slug} multi icon={NEED_ICON[c.slug]} selected={a.needs.includes(c.slug)} onClick={() => (a.needs.includes(c.slug) || needCount < 2 ? toggle('needs', c.slug) : setError('You can pick up to two.'))} testid={`q2-need-${c.slug}`}>{c.pain}</Choice>)}
-        <Choice multi icon={HelpCircle} selected={a.something_else} onClick={() => (a.something_else || needCount < 2 ? set({ something_else: !a.something_else }) : setError('You can pick up to two.'))} testid="q2-need-something-else">Something else (tell us at the end)</Choice>
+        <Choice multi icon={HelpCircle} selected={a.something_else} onClick={() => (a.something_else || needCount < 2 ? set({ something_else: !a.something_else }) : setError('You can pick up to two.'))} testid="q2-need-something-else">Something else</Choice>
+        {a.something_else && (
+          <div className="sm:col-span-2">
+            <OtherField id="q2-other" label="What else takes up your time?" required={a.needs.length === 0}
+              hint="A few words is enough — for example “chasing unpaid invoices” or “answering the same emails”." value={a.something_else_text || ''} max={300} multiline
+              onChange={(v) => set({ something_else_text: v })} testid="q2-something-else-input" />
+          </div>
+        )}
       </div>) },
     { q: 'About how many hours a week does this cost you?', hint: 'A rough guess is fine.', valid: true, skip: a.needs.length === 0, body: (
       <div className="space-y-5">{a.needs.map((n) => { const c = cats.find((x) => x.slug === n); const v = a.hours[n] ?? 3; return (
@@ -102,16 +129,19 @@ export default function Start() {
     { q: 'How much could you spend each month?', valid: !!a.budget, auto: true, body: (
       <div className="grid gap-2.5">{BUDGET.map(([k, l, sub]) => <Choice key={k} compact sub={sub} selected={a.budget === k} onClick={() => pickAndGo({ budget: k })} testid={`q5-budget-${k}`}>{l}</Choice>)}</div>) },
     { q: 'Which of these do you already use?', hint: 'Pick any, or skip.', valid: true, body: (
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">{meta.software.map((s) => <Choice key={s} compact multi selected={a.software.includes(s)} onClick={() => toggle('software', s)} testid={`q6-software-${s.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{s}</Choice>)}</div>) },
+      <div className="space-y-4"><div className="grid grid-cols-1 gap-2.5 min-[400px]:grid-cols-2 sm:grid-cols-3">{meta.software.map((s) => <Choice key={s} compact multi selected={a.software.includes(s)} onClick={() => toggle('software', s)} testid={`q6-software-${s.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{s}</Choice>)}</div>
+        {a.software.includes('Other') && (
+          <OtherField id="q6-other" label="Which other software do you use?" hint="Separate with commas — for example: Wix, Calendly, Xero." value={a.software_other || ''} max={120}
+            onChange={(v) => set({ software_other: v })} testid="q6-software-other-input" />
+        )}
+      </div>) },
     { q: 'How comfortable are you with apps?', valid: !!a.tech_comfort, auto: true, body: (
       <div className="grid gap-2.5">{TECH.map(([k, l, sub]) => <Choice key={k} compact sub={sub} selected={a.tech_comfort === k} onClick={() => pickAndGo({ tech_comfort: k })} testid={`q7-tech-${k}`}>{l}</Choice>)}</div>) },
     { q: 'When do you need it working?', valid: !!a.urgency, auto: true, body: (
       <div className="grid gap-2.5 sm:grid-cols-3">{URG.map(([k, l]) => <Choice key={k} compact selected={a.urgency === k} onClick={() => pickAndGo({ urgency: k })} testid={`q8-urgency-${k}`}>{l}</Choice>)}</div>) },
     { q: 'What matters most to you?', valid: !!a.priority, auto: true, body: (
       <div className="grid gap-2.5 sm:grid-cols-2">{PRI.map(([k, l]) => <Choice key={k} compact selected={a.priority === k} onClick={() => pickAndGo({ priority: k })} testid={`q9-priority-${k}`}>{l}</Choice>)}</div>) },
-    { q: a.something_else ? 'Tell us about your other problem' : 'Anything else we should know?',
-      hint: a.something_else ? (a.needs.length ? 'A few words is enough.' : 'A few words is enough — for example “answering calls after hours”.') : 'Optional — you can skip this.',
-      valid: !a.something_else || a.needs.length > 0 || a.free_text.trim().length >= 3, body: (
+    { q: 'Anything else we should know?', hint: 'Optional — you can skip this.', valid: true, body: (
       <div><textarea className="if-input min-h-32 py-3" maxLength={1000} value={a.free_text} onChange={(e) => set({ free_text: e.target.value })} placeholder="For example: customers call after we close at 6pm." data-testid="q10-free-text" aria-label="Anything else we should know" /><p className="mt-1 text-right text-xs text-[var(--ink-3)]">{a.free_text.length}/1000</p></div>) },
   ];
 
@@ -128,7 +158,7 @@ export default function Start() {
     set({ step: n });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const next = () => (step.valid ? move(1) : setError(i === 1 ? 'Please pick at least one.' : isLast ? 'Please write a few words so we can match it.' : 'Please choose an answer.'));
+  const next = () => (step.valid ? move(1) : setError(i === 1 ? (a.something_else && !a.needs.length ? 'Please tell us in a few words what else takes up your time.' : 'Please pick at least one.') : 'Please choose an answer.'));
   const finish = () => {
     saveAnswers({ ...a, completed: true });
     sessionStorage.setItem('if_submit_answers', '1');

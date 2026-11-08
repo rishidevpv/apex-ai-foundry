@@ -4,6 +4,7 @@ import { X, Plus, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { usePageTitle, useMeta } from '@/lib/hooks';
 import { PersonalRatingNudge } from '@/components/rating/ApexRating';
+import { WebsiteLink } from '@/components/tools/WebsiteLink';
 import { Loading, ErrorState, Empty } from '@/components/feedback/States';
 
 const val = (v) => (v === true ? 'Yes' : v === false ? 'No' : 'Not listed');
@@ -123,6 +124,9 @@ export default function Compare() {
           <>
             {/* Phones: one card per row, every tool listed underneath — no sideways scrolling */}
             <div className="space-y-3 md:hidden" data-testid="compare-mobile">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+                {tools.map((t, i) => <span key={t.slug} className="inline-flex items-center gap-1.5 text-sm"><span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--brand)] text-[0.7rem] font-semibold text-[var(--on-brand)]">{i + 1}</span><WebsiteLink url={t.website_url} name={t.name} variant="icon" /></span>)}
+              </div>
               {rows.map(([label, fn]) => (
                 <div key={label} className={`rounded-2xl border p-4 ${differs(fn) ? 'border-[var(--brand-ring)] bg-[var(--brand-soft)]' : 'border-[var(--line)] bg-[var(--surface)]'}`}>
                   <p className="flex items-center justify-between gap-2 text-sm font-semibold text-[var(--ink-2)]">{label}{differs(fn) && <span className="text-xs font-normal text-[var(--brand)]">Differs</span>}</p>
@@ -139,7 +143,7 @@ export default function Compare() {
             </div>
             <div className="if-card hidden overflow-x-auto md:block" data-testid="compare-table">
               <table className="w-full min-w-[640px] text-left text-[0.95rem]">
-                <thead><tr className="border-b border-[var(--line)]"><th className="w-48 p-4" />{tools.map((t) => <th key={t.slug} className="p-4 font-display text-lg font-bold"><Link to={`/tools/${t.slug}`} className="hover:underline">{t.name}</Link></th>)}</tr></thead>
+                <thead><tr className="border-b border-[var(--line)]"><th className="w-48 p-4" />{tools.map((t) => <th key={t.slug} className="p-4 align-top font-display text-lg font-bold"><Link to={`/tools/${t.slug}`} className="hover:underline">{t.name}</Link><div className="-ml-1 mt-0.5 font-sans text-sm font-normal"><WebsiteLink url={t.website_url} name={t.name} variant="icon" /></div></th>)}</tr></thead>
                 <tbody>
                   {rows.map(([label, fn]) => (
                     <tr key={label} className={`border-b border-[var(--line)] last:border-0 ${differs(fn) ? 'bg-[var(--brand-soft)]' : ''}`}>

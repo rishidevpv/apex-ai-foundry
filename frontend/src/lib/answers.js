@@ -3,6 +3,7 @@ export const ANSWERS_KEY = 'if_answers_v1';
 export const emptyAnswers = () => ({
   step: 0, business_type: null, team_size_band: null, needs: [], something_else: false, hours: {}, outcomes: [],
   budget: null, software: [], tech_comfort: null, urgency: null, priority: null, free_text: '', completed: false,
+  business_type_other: '', something_else_text: '', software_other: '',
 });
 
 export function loadAnswers() {

@@ -29,7 +29,7 @@ export function shapePick(p, explanation) {
 
 export const shapeOther = ({ s, reason }) => ({
   slug: s.tool.slug, name: s.tool.name, category_label: CATEGORY_BY_SLUG[s.tool.category]?.label,
-  price_text: publicTool(s.tool).price_text, rating: s.apex?.rating ?? null, reason: reason.text, reason_code: reason.code, left_out: !!s.reasons,
+  price_text: publicTool(s.tool).price_text, website_url: publicTool(s.tool).website_url, rating: s.apex?.rating ?? null, reason: reason.text, reason_code: reason.code, left_out: !!s.reasons,
 });
 
 export async function buildResults(tools, profile, summary, userId) {

@@ -15,6 +15,10 @@ export const AnswersSchema = z.object({
   urgency: z.enum(URGENCY),
   priority: z.enum(PRIORITIES),
   free_text: z.string().max(1000).optional().default(''),
+  // The owner's own words when they pick "Other" / "Something else".
+  business_type_other: z.string().max(80).optional().default(''),
+  something_else_text: z.string().max(300).optional().default(''),
+  software_other: z.string().max(120).optional().default(''),
   hourly_value: z.number().min(0).max(1000).optional(),
 }).refine((a) => a.needs.length >= 1 || a.something_else, { message: 'Choose at least one headache' })
   .refine((a) => a.needs.length + (a.something_else ? 1 : 0) <= 2, { message: 'Choose up to two headaches' });
@@ -35,6 +39,23 @@ export const ProfileSchema = z.object({
   summary: z.string().optional(),
 });
 
+const ownWords = (s) => sanitizeText(s || '', 120).split(/[,;\n]|\band\b/i).map((x) => x.trim()).filter((x) => x.length >= 2).slice(0, 6);
+
+// The owner's own words, kept separately so prompts can treat them as data, never as instructions.
+function ownerContext(a) {
+  const c = {};
+  if (a.business_type === 'other' && a.business_type_other?.trim()) c.business = sanitizeText(a.business_type_other, 80);
+  if (a.something_else && a.something_else_text?.trim()) c.other_need = sanitizeText(a.something_else_text, 300);
+  if (a.software.includes('Other') && a.software_other?.trim()) c.other_software = sanitizeText(a.software_other, 120);
+  return Object.keys(c).length ? { context: c } : {};
+}
+
+// Everything the owner typed, as one block of text for need matching and the AI.
+export function ownerText(answers, profile) {
+  const c = profile?.context || {};
+  return [c.business && `Business: ${c.business}`, c.other_need && `Other problem: ${c.other_need}`, c.other_software && `Other software: ${c.other_software}`, answers?.free_text && `Notes: ${answers.free_text}`].filter(Boolean).join('\n');
+}
+
 // Plain code mapping (no LLM), system design §4 stage 1.
 export function mapAnswers(raw) {
   const a = AnswersSchema.parse(raw);
@@ -42,7 +63,13 @@ export function mapAnswers(raw) {
   const allowedOutcomes = needs.flatMap((n) => CATEGORY_BY_SLUG[n].outcomes.map(([k]) => k));
   const hours = Object.fromEntries(needs.map((n) => [n, Number(a.hours[n] ?? 0)]));
   return {
-    answers: { ...a, free_text: sanitizeText(a.free_text, 1000) },
+    answers: {
+      ...a,
+      free_text: sanitizeText(a.free_text, 1000),
+      business_type_other: a.business_type === 'other' ? sanitizeText(a.business_type_other, 80) : '',
+      something_else_text: a.something_else ? sanitizeText(a.something_else_text, 300) : '',
+      software_other: a.software.includes('Other') ? sanitizeText(a.software_other, 120) : '',
+    },
     profile: {
       business_type: a.business_type,
       team_size_band: a.team_size_band,
@@ -51,11 +78,13 @@ export function mapAnswers(raw) {
       outcomes: a.outcomes.filter((o) => allowedOutcomes.includes(o)),
       budget_month: BUDGET_BANDS[a.budget],
       free_only: a.budget === 'free_only',
-      existing_software: a.software,
+      // Software they typed in under "Other" also counts when we check what a tool connects to.
+      existing_software: [...a.software, ...(a.software.includes('Other') ? ownWords(a.software_other) : [])],
       tech_comfort: a.tech_comfort,
       urgency: a.urgency,
       priority: a.priority,
       ...(a.hourly_value ? { hourly_value: a.hourly_value } : {}),
+      ...ownerContext(a),
     },
   };
 }

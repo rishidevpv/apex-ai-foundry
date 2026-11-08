@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, Info, Star, CircleSlash } from 'lucide-react';
 import { RecCard } from './RecCard';
+import { WebsiteLink } from '@/components/tools/WebsiteLink';
 import { QuadrantChart } from './QuadrantChart';
 
 const lvl = { Strong: 'text-success', Okay: 'text-warning', Weak: 'text-danger', 'Not listed': 'text-[var(--ink-3)] italic' };
@@ -30,6 +31,7 @@ function OthersConsidered({ others }) {
             </div>
             <div className="flex shrink-0 items-center gap-3 sm:justify-end">
               <span className="text-sm text-[var(--ink-3)]">{o.price_text === 'Not listed' ? 'Price not listed' : o.price_text}</span>
+              <WebsiteLink url={o.website_url} name={o.name} variant="icon" testid={`other-website-${o.slug}`} />
               {o.rating != null && <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-warm)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-2)]" title="Your APEX rating"><Star className="h-3.5 w-3.5 fill-[var(--gold)] text-[var(--gold)]" />{o.rating.toFixed(1)}</span>}
             </div>
           </li>

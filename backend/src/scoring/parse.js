@@ -1,3 +1,4 @@
+import { TOOL_WEBSITES } from '../data/websites.js';
 import { BIASED_DOMAINS, REVIEW_SITES, SMB_FLAGS } from '../data/biasedDomains.js';
 
 export const LAST_CHECKED = '2026-11-07';
@@ -110,6 +111,8 @@ export function parseRow(row) {
     pricing_notes: clean(row.pricing_notes),
     ...parsePrice(row.pricing_notes),
     reviews: parseReviews(row.review_signals),
+    // Seeding fills the official site from data/websites.js (the CSV has no website column).
+    website_url: clean(row.website_url || '') || TOOL_WEBSITES[slug] || null,
     sources: parseSources(row.sources, slug, name, null),
     ai_features: splitList(row.ai_features),
     integrations: splitList(row.integrations).filter((i) => !/reported/i.test(i)),

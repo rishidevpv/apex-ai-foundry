@@ -1,3 +1,4 @@
+import { TOOL_WEBSITES } from '../data/websites.js';
 const money = (n) => `$${Number(n) % 1 ? Number(n).toFixed(2) : Number(n)}`;
 
 // Plain-language price, never inferring a monthly price that the record does not state.
@@ -14,5 +15,5 @@ export function priceText(t) {
 export function publicTool(t) {
   if (!t) return null;
   const { embedding, provider_id, contact_email, ...rest } = t;
-  return { ...rest, price_text: priceText(t) };
+  return { ...rest, website_url: rest.website_url || TOOL_WEBSITES[rest.slug] || null, price_text: priceText(t) };
 }

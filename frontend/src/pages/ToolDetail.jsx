@@ -8,6 +8,7 @@ import { useAuth, startLogin } from '@/lib/auth';
 import { Loading, ErrorState, NotListed } from '@/components/feedback/States';
 
 const CHECK_LABELS = { price: 'Price', rating: 'Customer rating', features: 'Features', integrations: 'Connections', free_plan_flag: 'Free plan known', trial_flag: 'Free trial known', best_for: 'Who it’s for', two_sources: 'Two or more sources' };
+import { WebsiteLink } from '@/components/tools/WebsiteLink';
 import { ApexBadge, ApexBreakdown, RatingPill, PersonalRatingNudge } from '@/components/rating/ApexRating';
 
 const SRC = { g2: 'G2', capterra: 'Capterra', trustpilot: 'Trustpilot', editorial: 'Editorial review', toolradar: 'Toolradar' };
@@ -84,6 +85,7 @@ export default function ToolDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <WebsiteLink url={t.website_url} name={t.name} variant="button" testid="tool-website-button" />
           <button type="button" className="if-btn-ghost" onClick={save} data-testid="tool-save-button"><Bookmark className="h-4 w-4" />Save</button>
           <Link to={`/compare?tools=${t.slug}`} className="if-btn-ghost" data-testid="tool-compare-button"><Columns3 className="h-4 w-4" />Compare</Link>
           <Link to={`/guide/${t.slug}`} className="if-btn-primary" data-testid="tool-guide-button"><Wrench className="h-4 w-4" />Set it up</Link>

@@ -17,8 +17,9 @@ r.post('/profile', requireAuth, limit('write'), async (req, res) => {
   const s = await profileSummary(answers, profile, req.user.id);
   if (answers.something_else) {
     // AI suggestion first, then plain keyword matching, then a catalog search on the owner's own words.
-    let extra = [...(s.extra_needs || []), ...inferNeeds(answers.free_text)];
-    if (!extra.length && !profile.primary_needs.length) extra = inferNeedsFromCatalog(answers.free_text, await liveTools());
+    const told = `${answers.something_else_text || ''} ${answers.free_text || ''}`;
+    let extra = [...(s.extra_needs || []), ...inferNeeds(told)];
+    if (!extra.length && !profile.primary_needs.length) extra = inferNeedsFromCatalog(told, await liveTools());
     for (const n of extra) if (profile.primary_needs.length < 2 && !profile.primary_needs.includes(n)) { profile.primary_needs.push(n); profile.hours_per_week[n] = 3; }
   }
   if (!profile.primary_needs.length) return res.status(400).json({ error: 'We could not match what you wrote to a type of tool. Add a few more words in the last question (for example “answering calls” or “sending invoices”), or tick one of the listed headaches.', field: 'needs' });

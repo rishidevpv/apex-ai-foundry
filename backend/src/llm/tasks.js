@@ -1,3 +1,4 @@
+import { ownerText } from '../features/profile.js';
 import { callLLM, hashKey, modelFor } from './call.js';
 import { prompts, PROMPT_VERSION } from './prompts.js';
 import { ToolEnrichment, ProfileOut, Explanation, CommentTags, CompareOut } from './schemas.js';
@@ -35,7 +36,7 @@ export async function enrichTool(tool) {
 export async function profileSummary(answers, profile, userId) {
   const r = await callLLM({
     task: 'profile', userId,
-    messages: prompts.profile({ ...answers, free_text: undefined }, answers.free_text || '', CATEGORY_SLUGS),
+    messages: prompts.profile({ ...answers, free_text: undefined, business_type_other: undefined, something_else_text: undefined, software_other: undefined }, ownerText(answers, profile), CATEGORY_SLUGS),
     schema: ProfileOut, cacheKey: hashKey('profile', answers, PROMPT_VERSION),
   });
   if (!r.ok) return { summary: templateSummary(profile), extra_needs: [], fallback: true };
