@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Menu, X, LogOut, Bookmark, Settings, Shield, MoonStar, SunMedium, ChevronDown, LayoutGrid } from 'lucide-react';
 import { useAuth, startLogin } from '@/lib/auth';
 
@@ -124,11 +124,8 @@ export function Header() {
 }
 
 export function Footer() {
-  // On the questionnaire a fixed "Next" bar sits at the bottom of the screen; leave room so the footer isn't hidden behind it.
-  const { pathname } = useLocation();
-  const underBar = pathname === '/start';
   return (
-    <footer className={`mt-24 border-t border-[var(--line)] bg-[var(--surface-warm)] ${underBar ? 'pb-[calc(5.5rem+env(safe-area-inset-bottom))]' : 'pb-[env(safe-area-inset-bottom)]'}`}>
+    <footer className="mt-24 border-t border-[var(--line)] bg-[var(--surface-warm)] pb-[env(safe-area-inset-bottom)]">
       <div className="if-container grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="space-y-3">
           <Logo />

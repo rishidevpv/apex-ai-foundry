@@ -173,7 +173,7 @@ export default function Start() {
   const pct = Math.round((pos / total) * 100);
 
   return (
-    <div className="if-container max-w-2xl pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:pt-12" onKeyDown={(e) => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') next(); }}>
+    <div className="if-container max-w-2xl pb-6 pt-6 sm:pt-12" onKeyDown={(e) => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') next(); }}>
       <div className="mb-8">
         <div className="flex items-center justify-between gap-3">
           <button type="button" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm text-[var(--ink-2)] hover:bg-[var(--surface-hover)] disabled:invisible" onClick={() => move(-1)} disabled={i === 0} data-testid="questionnaire-back-button"><ArrowLeft className="h-4 w-4" />Back</button>
@@ -185,19 +185,20 @@ export default function Start() {
         <h1 className="text-[1.65rem] font-semibold leading-tight sm:text-[2rem]" data-testid="questionnaire-question">{step.q}</h1>
         {step.hint && <p className="mt-2 text-[var(--ink-3)]">{step.hint}</p>}
         <div className="mt-7">{step.body}</div>
+        {isLast && !user && <p className="mt-6 text-sm text-[var(--ink-3)]">Next, create a free account so we can save your results.</p>}
         {error && <p className="mt-4 rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-sm font-medium text-danger" role="alert" data-testid="questionnaire-error">{error}</p>}
       </section>
 
-      {/* Sticky action bar: always within thumb reach */}
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-[var(--line)] bg-[var(--header-bg)] backdrop-blur-xl">
-        <div className="if-container flex max-w-2xl items-center justify-between gap-3 pt-3">
+      {/* Action bar sits right under the question. On long questions it sticks to the bottom of the screen
+          (thumb reach on phones) but never goes past the end of the questionnaire, so it never covers the footer. */}
+      <div className="pb-safe sticky bottom-0 z-30 -mx-4 mt-8 border-t border-[var(--line)] bg-[var(--header-bg)] px-4 backdrop-blur-xl sm:-mx-6 sm:px-6">
+        <div className="flex items-center justify-between gap-3 pt-3">
           <button type="button" className="-ml-2 min-h-11 rounded-lg px-2 text-sm text-[var(--ink-3)] underline-offset-2 hover:underline" onClick={() => { if (window.confirm('Clear your answers and start again?')) setA(emptyAnswers()); }} data-testid="questionnaire-reset-button">Start over</button>
           <button type="button" className="if-btn-primary if-press min-h-12 min-w-36 text-base sm:min-w-44" onClick={next} data-testid="questionnaire-continue-button">
             {isLast ? 'See my results' : step.auto && !step.valid ? 'Choose one' : (step.hint?.includes('skip') && !a.software.length && i === 5) ? 'Skip' : 'Next'}<ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </div>
-      {isLast && !user && <p className="mt-6 text-sm text-[var(--ink-3)]">Next, create a free account so we can save your results.</p>}
     </div>
   );
 }
