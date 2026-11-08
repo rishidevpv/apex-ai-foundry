@@ -65,15 +65,18 @@ r.get('/recommend/latest', requireAuth, async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const p = await currentProfile(req.user.id);
   if (!p) return res.json({ results: null });
-  const recs = await q(db().from('recommendations').select('tool_id,explanation,rank').eq('profile_id', p.id).order('rank'));
+  const recs = await q(db().from('recommendations').select('tool_id,explanation,rank,scoring_version').eq('profile_id', p.id).order('rank'));
   if (!recs.length) return res.json({ results: null, needs_refresh: true });
   const tools = await liveTools();
   const ranked = rank(tools, p.structured);
   const byId = Object.fromEntries(ranked.picks.map((x) => [x.tool.id, x]));
-  const picks = recs.map((rc) => byId[rc.tool_id] && shapePick(byId[rc.tool_id], rc.explanation)).filter(Boolean);
+  // Always show saved picks in the order of the owner's current APEX rating (highest first).
+  const picks = recs.map((rc) => byId[rc.tool_id] && shapePick(byId[rc.tool_id], rc.explanation)).filter(Boolean)
+    .sort((a, b) => (b.apex?.rating ?? 0) - (a.apex?.rating ?? 0));
   const pickedIds = new Set(picks.map((x) => x.tool.id));
   res.json({
-    needs_refresh: picks.length !== recs.length || picks.length !== ranked.picks.length,
+    // Results saved under an older scoring method are rebuilt automatically.
+    needs_refresh: picks.length !== recs.length || picks.length !== ranked.picks.length || recs.some((rc) => rc.scoring_version !== SCORING_VERSION),
     results: {
       scoring_version: SCORING_VERSION, profile: p.structured, summary: p.summary,
       picks: picks.map((x, i) => ({ ...x, rank: i + 1 })),
