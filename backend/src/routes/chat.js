@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db, q } from '../db.js';
-import { optionalAuth } from '../security/auth.js';
+import { optionalAuth, requireAuth } from '../security/auth.js';
 import { limit } from '../security/rateLimit.js';
 import { streamChat } from '../features/chat.js';
 
@@ -11,7 +11,8 @@ const Body = z.object({
   persona: z.string().max(40).optional(),
 });
 
-r.post('/chat', optionalAuth, limit('chat'), async (req, res) => {
+// Signed-in users only: anonymous requests get 401 before any AI call is made.
+r.post('/chat', requireAuth, limit('chat'), async (req, res) => {
   const p = Body.safeParse(req.body);
   if (!p.success) return res.status(400).json({ error: 'Message too long or empty.' });
   let profile = null; let top3 = []; let profileId = null;

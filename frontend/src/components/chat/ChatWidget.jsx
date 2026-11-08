@@ -58,6 +58,9 @@ export function ChatWidget() {
     setBusy(false);
   };
 
+  // The helper is for signed-in owners only.
+  if (!user) return null;
+
   return (
     <>
       {!open && pathname !== '/start' && (
