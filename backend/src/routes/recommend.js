@@ -53,7 +53,7 @@ r.post('/recommend', requireAuth, limit('recommend'), async (req, res) => {
     if (results.picks.length) {
       await q(db().from('recommendations').insert(results.picks.map((x) => ({
         profile_id: p.id, tool_id: x.tool.id, rank: x.rank, fit: x.fit, trust: x.trust, final: x.final, quadrant: x.quadrant,
-        breakdown: { dimensions: x.dimensions, proof: x.proof, tool_version: x.tool.version }, explanation: x.explanation, eta: x.eta, scoring_version: SCORING_VERSION,
+        breakdown: { dimensions: x.dimensions, proof: x.proof, apex: x.apex, tool_version: x.tool.version }, explanation: x.explanation, eta: x.eta, scoring_version: SCORING_VERSION,
       }))));
     }
   }
@@ -77,7 +77,7 @@ r.get('/recommend/latest', requireAuth, async (req, res) => {
     results: {
       scoring_version: SCORING_VERSION, profile: p.structured, summary: p.summary,
       picks: picks.map((x, i) => ({ ...x, rank: i + 1 })),
-      chart: ranked.all.map((s) => ({ slug: s.tool.slug, name: s.tool.name, fit: s.fit, trust: s.trust, quadrant: s.quadrant, picked: pickedIds.has(s.tool.id), gated: !!s.reasons })),
+      chart: ranked.all.map((s) => ({ slug: s.tool.slug, name: s.tool.name, rating: s.apex?.rating, fit: s.fit, trust: s.trust, quadrant: s.quadrant, picked: pickedIds.has(s.tool.id), gated: !!s.reasons })),
       shortfall: ranked.shortfall, considered: ranked.all.length,
     },
   });

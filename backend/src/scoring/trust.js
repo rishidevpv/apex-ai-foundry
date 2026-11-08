@@ -21,6 +21,14 @@ export function priorMeans(tools) {
   return { global, means, of: (cat) => means[cat] ?? global };
 }
 
+// Review rating pulled toward the category average when there are few reviews (Bayesian average).
+export function adjustedRating(reviews, m, C = BAYES_C) {
+  const merged = mergedRating(reviews);
+  const v = merged ? merged.v : 0;
+  const r = merged ? merged.r : m;
+  return { adj: (v * r + C * m) / (v + C), raw: merged ? merged.r : null, known: !!merged };
+}
+
 export function reviewScore(reviews, m, C = BAYES_C) {
   const merged = mergedRating(reviews);
   const v = merged ? merged.v : 0;

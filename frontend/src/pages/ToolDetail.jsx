@@ -8,6 +8,8 @@ import { useAuth, startLogin } from '@/lib/auth';
 import { Loading, ErrorState, NotListed } from '@/components/feedback/States';
 
 const CHECK_LABELS = { price: 'Price', rating: 'Customer rating', features: 'Features', integrations: 'Connections', free_plan_flag: 'Free plan known', trial_flag: 'Free trial known', best_for: 'Who it’s for', two_sources: 'Two or more sources' };
+import { ApexBadge, ApexBreakdown, RatingPill, PersonalRatingNudge } from '@/components/rating/ApexRating';
+
 const SRC = { g2: 'G2', capterra: 'Capterra', trustpilot: 'Trustpilot', editorial: 'Editorial review', toolradar: 'Toolradar' };
 const KIND = { review_site: 'Review site', vendor: 'Company website', editorial: 'Article', directory: 'Directory' };
 const yn = (v) => (v === true ? 'Yes' : v === false ? 'No' : null);
@@ -76,6 +78,7 @@ export default function ToolDetail() {
           <p className="mt-3 text-lg text-[var(--ink-2)]">{t.summary || <NotListed />}</p>
           {t.best_for && <p className="mt-2"><span className="font-semibold">Best for:</span> {t.best_for}</p>}
           <div className="mt-4 flex flex-wrap gap-2 text-sm">
+            <span className="if-chip border-[var(--line)] bg-surface"><RatingPill reviewRating={data.review_rating} /></span>
             <span className="if-chip border-[var(--line)] bg-surface"><ShieldCheck className="h-4 w-4 text-[var(--teal)]" />{tr.label}</span>
             {t.last_checked_at && <span className="if-chip border-[var(--line)] bg-surface text-[var(--ink-2)]">Last checked {t.last_checked_at}</span>}
           </div>
@@ -86,6 +89,16 @@ export default function ToolDetail() {
           <Link to={`/guide/${t.slug}`} className="if-btn-primary" data-testid="tool-guide-button"><Wrench className="h-4 w-4" />Set it up</Link>
         </div>
       </div>
+      {data.apex ? (
+        <section className="if-card mt-6 grid gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,15rem)_1fr]" data-testid="tool-apex-section">
+          <div>
+            <p className="text-sm font-semibold text-[var(--ink-2)]">Your APEX rating</p>
+            <div className="mt-2"><ApexBadge apex={data.apex} compact /></div>
+            <p className="mt-3 text-xs text-[var(--ink-3)]">Based on your latest answers. Change your answers and this rating changes too.</p>
+          </div>
+          <ApexBreakdown apex={data.apex} />
+        </section>
+      ) : <PersonalRatingNudge next={`/tools/${slug}`} className="mt-6 max-w-2xl" />}
       {t.smb_fit_flag !== 'good' && (
         <div className="mt-6 flex gap-3 rounded-xl border border-warning-line bg-warning-soft p-4 text-warning" role="note" data-testid="tool-smb-warning"><AlertTriangle className="h-5 w-5 shrink-0" /><p><span className="font-semibold">Built for bigger businesses.</span> {t.smb_fit_flag === 'too_costly' ? 'It is likely to cost more than a small team needs.' : 'It is likely more complex than a small team needs.'} We keep it out of the top three for teams under 10.</p></div>
       )}

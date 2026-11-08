@@ -2,6 +2,7 @@ import { ALPHA, FIT_THRESHOLD, TRUST_THRESHOLD, TIE_EPS, SCORING_VERSION } from 
 import { fitBreakdown } from './features.js';
 import { trustBreakdown, priorMeans } from './trust.js';
 import { eta } from './eta.js';
+import { apexScore } from './apex.js';
 
 export const finalScore = (fit, trust, alpha = ALPHA) => Math.pow(fit, alpha) * Math.pow(trust, 1 - alpha);
 
@@ -32,9 +33,11 @@ export function compareRanked(a, b) {
 export function scoreTool(tool, profile, means, opts = {}) {
   const { fit, dims, weights } = fitBreakdown(tool, profile);
   const tb = trustBreakdown(tool, means.of(tool.category));
-  const final = finalScore(fit, tb.trust, opts.alpha);
+  // Ranking follows the owner's personal APEX score (BANT + skill + reviews), so the order matches the ratings they see.
+  const apex = apexScore(tool, profile, means.of(tool.category));
+  const final = opts.legacyFinal ? finalScore(fit, tb.trust, opts.alpha) : apex.score;
   return {
-    tool, fit, trust: tb.trust, final,
+    tool, fit, trust: tb.trust, final, apex,
     quadrant: quadrant(fit, tb.trust, opts.fitThreshold, opts.trustThreshold),
     breakdown: { ...Object.fromEntries(Object.entries(dims).map(([k, v]) => [k, v])), weights, R: tb.R, E: tb.E, S: tb.S },
   };
@@ -83,7 +86,9 @@ export function rank(tools, profile, opts = {}) {
   const top = scored.filter((s) => s.quadrant === 'top_pick');
   const thin = scored.filter((s) => s.quadrant === 'thin_evidence');
   const pool = top.length >= 3 ? top : [...top, ...thin].sort(compareRanked);
-  const picks = pickTop(pool, profile.primary_needs).map((s, i) => ({ ...s, rank: i + 1, eta: eta(s.tool, profile, s.fit) }));
+  // Show picks in the order of the rating the owner sees (ties keep the usual trust/price tie-break).
+  const byRating = (a, b) => (b.apex?.rating ?? 0) - (a.apex?.rating ?? 0) || compareRanked(a, b);
+  const picks = pickTop(pool, profile.primary_needs).sort(byRating).map((s, i) => ({ ...s, rank: i + 1, eta: eta(s.tool, profile, s.fit) }));
   return {
     scoring_version: SCORING_VERSION,
     picks,

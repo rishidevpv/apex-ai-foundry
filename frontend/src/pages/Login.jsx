@@ -6,7 +6,8 @@ import { useAuth } from '@/lib/auth';
 import { usePageTitle } from '@/lib/hooks';
 
 export default function Login() {
-  const [mode, setMode] = useState('signin');
+  // Opens on “Create account” when the visitor came from a “create a free account” button.
+  const [mode, setMode] = useState(() => { try { const m = sessionStorage.getItem('if_login_mode'); sessionStorage.removeItem('if_login_mode'); return m === 'register' ? 'register' : 'signin'; } catch { return 'signin'; } });
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);

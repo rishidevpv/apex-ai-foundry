@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { apexScore } from '../scoring/apex.js';
+import { priorMeans } from '../scoring/trust.js';
 import { z } from 'zod';
 import { db, q, liveTools, invalidateTools, dataBackend } from '../db.js';
 import { requireAdmin, userFromRequest, isAdmin } from '../security/auth.js';
@@ -103,6 +105,16 @@ r.get('/demo/:slug', async (req, res) => {
   if (!slug.success) return res.status(404).json({ error: 'Sample not found' });
   const row = await q(db().from('demo_personas').select('slug,label,summary,structured,results,generated_at').eq('slug', slug.data).maybeSingle());
   if (!row) return res.status(404).json({ error: 'Sample not found' });
+  // Rate each stored pick for this sample business with the current APEX rubric.
+  if (row.results?.picks?.length && row.structured) {
+    const tools = await liveTools();
+    const means = priorMeans(tools);
+    const picks = row.results.picks.map((pk) => {
+      const t = tools.find((x) => x.slug === pk.tool.slug);
+      return t ? { ...pk, apex: apexScore(t, row.structured, means.of(t.category)) } : pk;
+    }).sort((a, b) => (b.apex?.score ?? 0) - (a.apex?.score ?? 0)).map((pk, i) => ({ ...pk, rank: i + 1 }));
+    row.results = { ...row.results, picks };
+  }
   res.json({ persona: row });
 });
 

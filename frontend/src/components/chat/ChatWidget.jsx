@@ -1,9 +1,40 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Lock } from 'lucide-react';
 import { streamChat } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { ChatMessage } from './ChatMessage';
+import { startLogin } from '@/lib/auth';
+
+// Shown to visitors who are not signed in: the same button, but it explains the helper needs an account.
+function LockedHelper() {
+  const [open, setOpen] = useState(false);
+  const { pathname, search } = useLocation();
+  const go = (mode) => { try { sessionStorage.setItem('if_login_mode', mode); } catch { /* ignore */ } setOpen(false); startLogin(pathname + search); };
+  return (
+    <>
+      {!open && (
+        <button type="button" onClick={() => setOpen(true)} className="if-press bottom-safe-4 fixed right-4 z-50 inline-flex h-14 min-w-14 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-4 font-medium text-[var(--on-brand)] shadow-[var(--shadow-pop)] sm:bottom-5 sm:right-5 sm:rounded-2xl sm:px-5" aria-label="Ask a question — sign in required" data-testid="chat-locked-button">
+          <MessageCircle className="h-5 w-5" /><span className="hidden sm:inline">Ask a question</span><Lock className="h-3.5 w-3.5 opacity-80" />
+        </button>
+      )}
+      {open && (
+        <div role="dialog" aria-label="Sign in to use the helper" className="if-fade-up pb-safe fixed inset-x-0 bottom-0 z-50 rounded-t-[1.6rem] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[var(--shadow-pop)] sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[380px] sm:rounded-2xl sm:pb-5" data-testid="chat-locked-panel">
+          <div className="flex items-start justify-between gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand)]"><MessageCircle className="h-5 w-5" /></span>
+            <button type="button" onClick={() => setOpen(false)} className="if-btn-quiet -mr-2 -mt-1 min-h-10" aria-label="Close"><X className="h-5 w-5" /></button>
+          </div>
+          <p className="mt-3 text-lg font-semibold">Sign in to ask the helper</p>
+          <p className="mt-1 text-[0.95rem] text-[var(--ink-2)]">The APEX helper answers questions about tools using your own answers and results, so it’s available once you have a free account.</p>
+          <div className="mt-5 grid gap-2">
+            <button type="button" className="if-btn-primary min-h-12" onClick={() => go('register')} data-testid="chat-locked-register">Create a free account</button>
+            <button type="button" className="if-btn-ghost min-h-12" onClick={() => go('signin')} data-testid="chat-locked-signin">I already have an account</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 const PersonaCtx = createContext({ persona: null, setPersona: () => {} });
 export function ChatPersonaProvider({ children }) {
@@ -58,8 +89,8 @@ export function ChatWidget() {
     setBusy(false);
   };
 
-  // The helper is for signed-in owners only.
-  if (!user) return null;
+  // The helper is for signed-in owners only — visitors see what it is and how to unlock it.
+  if (!user) return pathname === '/start' ? null : <LockedHelper />;
 
   return (
     <>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, BookmarkCheck, Columns3, Wrench, ChevronDown, Check, HelpCircle } from 'lucide-react';
+import { ApexBadge, WhyRating } from '@/components/rating/ApexRating';
 
 // One recommendation, built to be scanned in seconds:
 // name → one line on what it does → three key facts → one clear next step. Everything else is one tap away.
@@ -35,12 +36,13 @@ export function RecCard({ pick, onSave, saved, compareHref, guideHref, readOnly,
 
       <h3 className="mt-3 font-display text-2xl font-semibold leading-tight"><Link to={`/tools/${t.slug}`} className="hover:underline" data-testid={`rec-tool-link-${pick.rank}`}>{t.name}</Link></h3>
       <p className="mt-2 text-[1rem] leading-relaxed text-[var(--ink-2)]" data-testid={`rec-one-line-${pick.rank}`}>{e.one_line}</p>
+      {pick.apex && <div className="mt-4"><ApexBadge apex={pick.apex} /></div>}
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Fact label="Price" testid={`rec-price-${pick.rank}`} muted={!priceKnown}>{priceKnown ? t.price_text : 'Not listed'}</Fact>
         <Fact label="Time saved" testid={`rec-eta-${pick.rank}`} muted={!eta?.high}>{eta?.high ? `${eta.low}–${eta.high} hrs / week` : 'Not sure yet'}</Fact>
         <Fact label="Try before you buy" muted={!free}>{free || 'No free option listed'}</Fact>
-        <Fact label="Reviews">{pick.trust_label}</Fact>
+        <Fact label="Public reviews" muted={!pick.apex?.reviews?.rating}>{pick.apex?.reviews?.rating ? `${pick.apex.reviews.rating.toFixed(1)} / 5` : 'No reviews yet'}</Fact>
       </div>
 
       {e.why_it_fits && (
@@ -49,7 +51,9 @@ export function RecCard({ pick, onSave, saved, compareHref, guideHref, readOnly,
         </p>
       )}
 
-      <button type="button" onClick={() => setMore(!more)} aria-expanded={more} className="-ml-1 mt-3 inline-flex min-h-11 items-center gap-1 self-start rounded-lg px-1 text-sm font-medium text-[var(--brand)] hover:underline" data-testid={`rec-more-${pick.rank}`}>
+      <div className="mt-3"><WhyRating apex={pick.apex} testid={`rec-why-rating-${pick.rank}`} /></div>
+
+      <button type="button" onClick={() => setMore(!more)} aria-expanded={more} className="-ml-1 inline-flex min-h-10 items-center gap-1 self-start rounded-lg px-1 text-sm font-medium text-[var(--brand)] hover:underline" data-testid={`rec-more-${pick.rank}`}>
         {more ? 'Hide details' : 'More details'}<ChevronDown className={`h-4 w-4 transition-transform ${more ? 'rotate-180' : ''}`} />
       </button>
       {more && (

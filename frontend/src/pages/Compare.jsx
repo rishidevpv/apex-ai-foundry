@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { X, Plus, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { usePageTitle, useMeta } from '@/lib/hooks';
+import { PersonalRatingNudge } from '@/components/rating/ApexRating';
 import { Loading, ErrorState, Empty } from '@/components/feedback/States';
 
 const val = (v) => (v === true ? 'Yes' : v === false ? 'No' : 'Not listed');
@@ -99,6 +100,13 @@ export default function Compare() {
   const setSlugs = (s) => setSp(s.length ? { tools: s.join(',') } : {});
   const tools = [...(state.data?.tools || [])].sort((a, b) => slugs.indexOf(a.slug) - slugs.indexOf(b.slug)); // same order as the numbered chips
   const differs = (fn) => new Set(tools.map(fn)).size > 1;
+  // Personal APEX rating first (when signed in with answers), then public reviews, then the facts.
+  const verdict = (r) => (r >= 4.3 ? 'Excellent fit' : r >= 3.8 ? 'Good fit' : r >= 3.2 ? 'Fair fit' : 'Weak fit');
+  const rows = [
+    ...(tools.some((t) => t.apex) ? [['Your APEX rating', (t) => (t.apex ? `${t.apex.rating.toFixed(1)} / 5 · ${verdict(t.apex.rating)}` : 'Not listed')]] : []),
+    ['Public review rating', (t) => (t.review_rating ? `${t.review_rating.toFixed(1)} / 5` : 'Not listed')],
+    ...ROWS,
+  ];
   return (
     <div className="if-container py-10 sm:py-14">
       <p className="if-eyebrow">Compare</p>
@@ -115,7 +123,7 @@ export default function Compare() {
           <>
             {/* Phones: one card per row, every tool listed underneath — no sideways scrolling */}
             <div className="space-y-3 md:hidden" data-testid="compare-mobile">
-              {ROWS.map(([label, fn]) => (
+              {rows.map(([label, fn]) => (
                 <div key={label} className={`rounded-2xl border p-4 ${differs(fn) ? 'border-[var(--brand-ring)] bg-[var(--brand-soft)]' : 'border-[var(--line)] bg-[var(--surface)]'}`}>
                   <p className="flex items-center justify-between gap-2 text-sm font-semibold text-[var(--ink-2)]">{label}{differs(fn) && <span className="text-xs font-normal text-[var(--brand)]">Differs</span>}</p>
                   <dl className="mt-2 space-y-2">
@@ -133,7 +141,7 @@ export default function Compare() {
               <table className="w-full min-w-[640px] text-left text-[0.95rem]">
                 <thead><tr className="border-b border-[var(--line)]"><th className="w-48 p-4" />{tools.map((t) => <th key={t.slug} className="p-4 font-display text-lg font-bold"><Link to={`/tools/${t.slug}`} className="hover:underline">{t.name}</Link></th>)}</tr></thead>
                 <tbody>
-                  {ROWS.map(([label, fn]) => (
+                  {rows.map(([label, fn]) => (
                     <tr key={label} className={`border-b border-[var(--line)] last:border-0 ${differs(fn) ? 'bg-[var(--brand-soft)]' : ''}`}>
                       <th scope="row" className="p-4 align-top text-sm font-semibold text-[var(--ink-2)]">{label}{differs(fn) && <span className="block text-xs font-normal text-[var(--brand)]">Differs</span>}</th>
                       {tools.map((t) => <td key={t.slug} className={`p-4 align-top ${fn(t) === 'Not listed' ? 'italic text-[var(--ink-3)]' : ''}`}>{fn(t)}</td>)}
@@ -142,6 +150,7 @@ export default function Compare() {
                 </tbody>
               </table>
             </div>
+            {!state.data?.personalized && <PersonalRatingNudge next={`/compare?tools=${slugs.join(',')}`} className="mt-6" />}
             <section className="if-card mt-6 p-6" data-testid="compare-tradeoffs">
               <h2 className="font-display text-lg font-bold">The main tradeoffs</h2>
               <ul className="mt-3 list-disc space-y-2 pl-5">{state.data.tradeoffs.sentences.map((s) => <li key={s}>{s}</li>)}</ul>
