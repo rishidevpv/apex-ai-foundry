@@ -1,9 +1,48 @@
 import { useState } from 'react';
-import { ChevronDown, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, Info, Star, CircleSlash } from 'lucide-react';
 import { RecCard } from './RecCard';
 import { QuadrantChart } from './QuadrantChart';
 
 const lvl = { Strong: 'text-success', Okay: 'text-warning', Weak: 'text-danger', 'Not listed': 'text-[var(--ink-3)] italic' };
+
+// Every other tool we checked for this owner, with its personal rating and why it wasn't picked.
+const REASON_TONE = { over_budget: 'text-warning', no_free_option: 'text-warning', too_big: 'text-warning', weak_match: 'text-[var(--ink-2)]', category_full: 'text-[var(--ink-2)]', rated_lower: 'text-[var(--ink-2)]' };
+function OthersConsidered({ others }) {
+  const [all, setAll] = useState(false);
+  if (!others.length) return null;
+  const shown = all ? others : others.slice(0, 6);
+  return (
+    <section data-testid="others-considered">
+      <h2 className="text-xl font-semibold sm:text-2xl">Other tools we looked at</h2>
+      <p className="mt-1 text-[var(--ink-2)]">We checked {others.length} more tool{others.length === 1 ? '' : 's'} for you. Here’s why each one didn’t make your top picks.</p>
+      <ul className="mt-5 divide-y divide-[var(--line)] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+        {shown.map((o) => (
+          <li key={o.slug} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5" data-testid={`other-${o.slug}`}>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Link to={`/tools/${o.slug}`} className="font-semibold hover:underline">{o.name}</Link>
+                {o.category_label && <span className="if-tag">{o.category_label}</span>}
+              </div>
+              <p className={`mt-1 flex items-start gap-1.5 text-sm ${REASON_TONE[o.reason_code] || 'text-[var(--ink-2)]'}`}>
+                {o.left_out ? <CircleSlash className="mt-0.5 h-3.5 w-3.5 shrink-0" /> : <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />}{o.reason}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3 sm:justify-end">
+              <span className="text-sm text-[var(--ink-3)]">{o.price_text === 'Not listed' ? 'Price not listed' : o.price_text}</span>
+              {o.rating != null && <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-warm)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-2)]" title="Your APEX rating"><Star className="h-3.5 w-3.5 fill-[var(--gold)] text-[var(--gold)]" />{o.rating.toFixed(1)}</span>}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {others.length > 6 && (
+        <button type="button" onClick={() => setAll(!all)} className="-ml-1 mt-3 inline-flex min-h-11 items-center gap-1 rounded-lg px-1 text-sm font-medium text-[var(--brand)] hover:underline" data-testid="others-toggle">
+          {all ? 'Show fewer' : `Show all ${others.length}`}<ChevronDown className={`h-4 w-4 transition-transform ${all ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+    </section>
+  );
+}
 
 function WhyThese({ picks }) {
   return (
@@ -28,16 +67,15 @@ function WhyThese({ picks }) {
 }
 
 export function ResultsView({ results, savedSlugs = [], onSave, readOnly, guideQuery = '' }) {
-  const { picks, shortfall, chart } = results;
+  const { picks, chart } = results;
   const slugs = picks.map((p) => p.tool.slug);
   const [how, setHow] = useState(false);
   return (
     <div className="space-y-8">
-      {shortfall?.length > 0 && (
-        <div className="flex gap-3 rounded-2xl border border-warning-line bg-warning-soft p-4" role="status" data-testid="shortfall-notice">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-          <div><p className="font-semibold text-warning">{picks.length === 0 ? 'Nothing matched well enough to recommend.' : `We found ${picks.length} good match${picks.length === 1 ? '' : 'es'}.`}</p>
-            <ul className="mt-1 space-y-0.5 text-[0.95rem] text-warning">{shortfall.map((s) => <li key={s}>{s}</li>)}</ul></div>
+      {picks.length === 0 && (
+        <div className="flex gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5" role="status" data-testid="no-picks-notice">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ink-3)]" />
+          <p className="text-[var(--ink-2)]">No tool matched your answers well enough to recommend. You can see every tool we checked, and why, below — or change your answers.</p>
         </div>
       )}
       <div className="grid items-start gap-5 lg:grid-cols-3">
@@ -47,6 +85,7 @@ export function ResultsView({ results, savedSlugs = [], onSave, readOnly, guideQ
             guideHref={`/guide/${p.tool.slug}${guideQuery}`} />
         ))}
       </div>
+      <OthersConsidered others={results.others || []} />
       {picks.length > 0 && (
         <section className="if-card" data-testid="how-we-picked">
           <button type="button" className="flex w-full items-center justify-between gap-3 p-5 text-left" onClick={() => setHow(!how)} aria-expanded={how} data-testid="why-these-toggle">

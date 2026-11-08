@@ -73,6 +73,26 @@ export function shortfallReasons(scored, gated, picks, profile) {
   return reasons;
 }
 
+const money = (n) => `$${Number(n) % 1 ? Number(n).toFixed(2) : Number(n)}`;
+const joinWords = (a) => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`);
+
+// Plain-English reason a considered tool did not make the top picks.
+export function whyNotPicked(s, picks, profile) {
+  if (s.reasons?.includes('over_budget')) return { code: 'over_budget', text: `Costs more than your budget (from ${money(s.tool.price_min_month)} a month)` };
+  if (s.reasons?.includes('no_free_option')) return { code: 'no_free_option', text: 'No free plan or free trial, and you asked for free tools only' };
+  if (s.reasons?.includes('too_big')) return { code: 'too_big', text: 'Built for bigger businesses than a team your size' };
+  const weak = (s.apex?.dims || []).filter((d) => d.level === 'Weak').map((d) => d.label.toLowerCase());
+  if (s.quadrant === 'proven_weak_fit' || s.quadrant === 'skip') {
+    return { code: 'weak_match', text: weak.length ? `Weaker match on ${joinWords(weak)}` : 'Did not match your answers as closely as your picks' };
+  }
+  const rating = s.apex?.rating ?? 0;
+  const lowestPick = Math.min(...picks.map((p) => p.apex?.rating ?? p.rating ?? 5));
+  if (picks.length && rating > lowestPick) return { code: 'coverage', text: 'Good option — we made room for a tool for each problem you picked' };
+  if (picks.filter((p) => p.tool.category === s.tool.category).length >= 2) return { code: 'category_full', text: 'Good option — we show up to two tools per problem, and your picks rated higher' };
+  if (weak.length) return { code: 'rated_lower', text: `Rated lower than your picks — weaker on ${joinWords(weak)}` };
+  return { code: 'rated_lower', text: 'Good option, but rated a little lower than your picks' };
+}
+
 export function rank(tools, profile, opts = {}) {
   const means = opts.means || priorMeans(tools);
   const live = tools.filter((t) => t.status === 'live' && profile.primary_needs.includes(t.category));
@@ -85,7 +105,10 @@ export function rank(tools, profile, opts = {}) {
   scored.sort(compareRanked);
   const top = scored.filter((s) => s.quadrant === 'top_pick');
   const thin = scored.filter((s) => s.quadrant === 'thin_evidence');
-  const pool = top.length >= 3 ? top : [...top, ...thin].sort(compareRanked);
+  // Every good match competes on the owner's APEX rating (which already includes review strength),
+  // so a higher-rated tool is never passed over for a lower-rated one.
+  const byRatingPool = (a, b) => (b.apex?.rating ?? 0) - (a.apex?.rating ?? 0) || compareRanked(a, b);
+  const pool = [...top, ...thin].sort(byRatingPool);
   // Show picks in the order of the rating the owner sees (ties keep the usual trust/price tie-break).
   const byRating = (a, b) => (b.apex?.rating ?? 0) - (a.apex?.rating ?? 0) || compareRanked(a, b);
   const picks = pickTop(pool, profile.primary_needs).sort(byRating).map((s, i) => ({ ...s, rank: i + 1, eta: eta(s.tool, profile, s.fit) }));
@@ -94,6 +117,10 @@ export function rank(tools, profile, opts = {}) {
     picks,
     all: [...scored, ...gated].sort(compareRanked),
     shortfall: shortfallReasons(scored, gated, picks, profile),
+    // Everything else we looked at, best-rated first (left-out tools last), each with the reason it wasn't picked.
+    others: [...scored, ...gated].filter((s) => !picks.some((p) => p.tool.id === s.tool.id))
+      .sort((a, b) => (!!a.reasons - !!b.reasons) || (b.apex?.rating ?? 0) - (a.apex?.rating ?? 0))
+      .map((s) => ({ s, reason: whyNotPicked(s, picks, profile) })),
   };
 }
 

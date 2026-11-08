@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { apexScore } from '../scoring/apex.js';
+import { rank, whyNotPicked } from '../scoring/rank.js';
+import { shapeOther } from '../features/recommendations.js';
 import { priorMeans } from '../scoring/trust.js';
 import { z } from 'zod';
 import { db, q, liveTools, invalidateTools, dataBackend } from '../db.js';
@@ -113,7 +115,11 @@ r.get('/demo/:slug', async (req, res) => {
       const t = tools.find((x) => x.slug === pk.tool.slug);
       return t ? { ...pk, apex: apexScore(t, row.structured, means.of(t.category)) } : pk;
     }).sort((a, b) => (b.apex?.score ?? 0) - (a.apex?.score ?? 0)).map((pk, i) => ({ ...pk, rank: i + 1 }));
-    row.results = { ...row.results, picks };
+    const shown = new Set(picks.map((pk) => pk.tool.slug));
+    const ranked = rank(tools, row.structured);
+    const others = ranked.all.filter((x) => !shown.has(x.tool.slug)).sort((a, b) => (!!a.reasons - !!b.reasons) || (b.apex?.rating ?? 0) - (a.apex?.rating ?? 0))
+      .map((x) => shapeOther({ s: x, reason: whyNotPicked(x, picks.map((pk) => ({ tool: { category: tools.find((t) => t.slug === pk.tool.slug)?.category }, rating: pk.apex?.rating })), row.structured) }));
+    row.results = { ...row.results, picks, others };
   }
   res.json({ persona: row });
 });

@@ -1,4 +1,4 @@
-export const SCORING_VERSION = 'v3.0'; // v3: personal APEX rating drives ranking
+export const SCORING_VERSION = 'v3.1'; // v3: personal APEX rating drives ranking; v3.1: picks are the highest-rated eligible tools
 export const DEFAULT_WEIGHTS = { N: 0.35, B: 0.25, A: 0.15, T: 0.10, I: 0.15 };
 export const PRIORITY_DIM = { cost: 'B', ease: 'A', speed: 'T', results: 'N' };
 export const SRC_W = { g2: 1.0, capterra: 1.0, trustpilot: 0.8, editorial: 0.5, toolradar: 0.5 };

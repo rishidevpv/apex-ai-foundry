@@ -51,3 +51,36 @@ describe('APEX personal rating', () => {
     expect(new Set(ratings).size).toBeGreaterThan(1);
   });
 });
+
+describe('Why other tools were not picked', () => {
+  it('every considered tool that is not a pick gets a plain reason', async () => {
+    const { rank: rk } = await import('../src/scoring/rank.js');
+    const tools = loadCsvTools().map((t, i) => ({ ...t, id: String(i), version: 1 }));
+    for (const p of PERSONAS) {
+      const { profile: pr } = mapAnswers(p.answers);
+      const r = rk(tools, pr);
+      expect(r.others.length + r.picks.length).toBe(r.all.length);
+      for (const o of r.others) { expect(o.reason.text.length).toBeGreaterThan(10); expect(r.picks.some((pk) => pk.tool.id === o.s.tool.id)).toBe(false); }
+    }
+  });
+  it('budget, free-only and size reasons are specific', async () => {
+    const { whyNotPicked } = await import('../src/scoring/rank.js');
+    expect(whyNotPicked({ reasons: ['over_budget'], tool: { price_min_month: 300 } }, [], profile).text).toContain('$300');
+    expect(whyNotPicked({ reasons: ['too_big'], tool: {} }, [], profile).code).toBe('too_big');
+    expect(whyNotPicked({ quadrant: 'skip', tool: { category: 'x' }, apex: { dims: [{ label: 'Budget', level: 'Weak' }, { label: 'Time to set up', level: 'Weak' }] } }, [], profile).text).toBe('Weaker match on budget and time to set up');
+  });
+});
+
+describe('Picks vs. the rest', () => {
+  it('a tool rated higher than a pick is only left out with an honest reason', async () => {
+    const { rank: rk } = await import('../src/scoring/rank.js');
+    const tools = loadCsvTools().map((t, i) => ({ ...t, id: String(i), version: 1 }));
+    for (const p of PERSONAS) {
+      const { profile: pr } = mapAnswers(p.answers);
+      const r = rk(tools, pr);
+      const low = Math.min(...r.picks.map((x) => x.apex.rating));
+      for (const o of r.others.filter((x) => (x.s.apex?.rating ?? 0) > low)) expect(['coverage', 'over_budget', 'no_free_option', 'too_big', 'weak_match', 'category_full']).toContain(o.reason.code);
+      for (const o of r.others.filter((x) => x.reason.code === 'rated_lower')) expect(o.s.apex.rating).toBeLessThanOrEqual(low);
+    }
+  });
+});

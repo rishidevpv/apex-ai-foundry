@@ -27,6 +27,11 @@ export function shapePick(p, explanation) {
   };
 }
 
+export const shapeOther = ({ s, reason }) => ({
+  slug: s.tool.slug, name: s.tool.name, category_label: CATEGORY_BY_SLUG[s.tool.category]?.label,
+  price_text: publicTool(s.tool).price_text, rating: s.apex?.rating ?? null, reason: reason.text, reason_code: reason.code, left_out: !!s.reasons,
+});
+
 export async function buildResults(tools, profile, summary, userId) {
   const r = rank(tools, profile);
   const explanations = await explainPicks(r.picks, profile, userId);
@@ -37,6 +42,7 @@ export async function buildResults(tools, profile, summary, userId) {
     picks: r.picks.map((p, i) => shapePick(p, explanations[i])),
     chart: r.all.map((s) => ({ slug: s.tool.slug, name: s.tool.name, rating: s.apex?.rating, fit: s.fit, trust: s.trust, quadrant: s.quadrant, picked: pickedIds.has(s.tool.id), gated: !!s.reasons })),
     shortfall: r.shortfall,
+    others: r.others.map(shapeOther),
     considered: r.all.length,
     generated_at: new Date().toISOString(),
   };

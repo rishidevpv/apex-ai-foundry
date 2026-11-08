@@ -4,8 +4,8 @@ import { requireAuth } from '../security/auth.js';
 import { limit } from '../security/rateLimit.js';
 import { mapAnswers, inferNeeds, inferNeedsFromCatalog } from '../features/profile.js';
 import { profileSummary } from '../llm/tasks.js';
-import { buildResults, shapePick } from '../features/recommendations.js';
-import { rank } from '../scoring/rank.js';
+import { buildResults, shapePick, shapeOther } from '../features/recommendations.js';
+import { rank, whyNotPicked } from '../scoring/rank.js';
 import { SCORING_VERSION } from '../scoring/config.js';
 
 const r = Router();
@@ -82,6 +82,9 @@ r.get('/recommend/latest', requireAuth, async (req, res) => {
       picks: picks.map((x, i) => ({ ...x, rank: i + 1 })),
       chart: ranked.all.map((s) => ({ slug: s.tool.slug, name: s.tool.name, rating: s.apex?.rating, fit: s.fit, trust: s.trust, quadrant: s.quadrant, picked: pickedIds.has(s.tool.id), gated: !!s.reasons })),
       shortfall: ranked.shortfall, considered: ranked.all.length,
+      // Reasons are worked out against the picks the owner actually sees.
+      others: ranked.all.filter((x) => !pickedIds.has(x.tool.id)).sort((a, b) => (!!a.reasons - !!b.reasons) || (b.apex?.rating ?? 0) - (a.apex?.rating ?? 0))
+        .map((x) => shapeOther({ s: x, reason: whyNotPicked(x, picks.map((pk) => ({ tool: { category: pk.tool.category }, rating: pk.apex?.rating })), p.structured) })),
     },
   });
 });
